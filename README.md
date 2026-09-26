@@ -1,11 +1,13 @@
 # AFPK 영플래너 재무설계 프로세스 데모 V0.2
 
+화면은 밝은 금융 앱 스타일이며 상단 요약 카드와 6단계 탭으로 구성합니다. 탭을 이동해도 입력과 계산은 유지됩니다. `design.py`와 `.streamlit/config.toml`을 함께 배포하세요. 로컬에서는 이 문서가 있는 폴더에서 실행해야 테마 설정이 적용됩니다.
+
 가상의 고객 금융자산과 월 저축액으로 목표시점 예상 금융자산을 계산하는 한국어 Streamlit 앱입니다. 생성형 AI나 API 키를 사용하지 않습니다. 직접 지정하는 외부 패키지는 Streamlit 하나이며, 설치 시 Streamlit의 필수 의존 패키지는 함께 설치됩니다.
 
 ## 1. 설치 방법
 
 1. [Python 공식 사이트](https://www.python.org/downloads/)에서 Python 3.12 또는 3.13을 설치합니다. Windows 설치 화면에서는 **Add python.exe to PATH**를 선택하세요.
-2. `app.py`, `planning.py`, `requirements.txt`, `README.md`를 같은 폴더에 놓습니다. 이 문서가 있는 `outputs` 폴더를 그대로 사용해도 됩니다. `planning.py`도 반드시 필요합니다.
+2. `app.py`, `planning.py`, `design.py`, `requirements.txt`, `README.md`와 `.streamlit` 폴더를 함께 놓습니다. 이 문서가 있는 `outputs` 폴더를 그대로 사용해도 됩니다.
 3. 해당 폴더를 탐색기로 열고 주소창에 `powershell`을 입력한 뒤 Enter를 눌러 터미널을 엽니다.
 4. 아래 명령을 한 줄씩 실행합니다. 패키지 설치에는 인터넷 연결이 필요합니다.
 
@@ -57,6 +59,8 @@ macOS/Linux:
 outputs/
 ├── app.py            # 변경하지 않은 V0.1 미래가치 함수 및 기존 상세 화면
 ├── planning.py       # 6단계 화면, 사례 데이터, 재무비율·대안 비교 함수
+├── design.py         # 밝은 금융 앱 스타일과 상단 요약 카드
+├── .streamlit/config.toml # 기본 라이트 테마
 ├── requirements.txt  # Streamlit 의존성
 └── README.md         # 설치·실행·계산 설명
 ```
@@ -134,7 +138,7 @@ UI 구성과 실행 방식 참고: [Streamlit 공식 문서](https://docs.stream
 
 `localhost` 또는 `127.0.0.1` 주소는 실행한 컴퓨터에서만 열립니다. 공개 링크를 만들려면 [Streamlit Community Cloud](https://share.streamlit.io/)에 배포합니다. 계정 로그인과 GitHub 연결이 필요합니다.
 
-1. GitHub의 앱 전용 저장소에 `app.py`, `planning.py`, `requirements.txt`, `README.md`를 같은 위치에 올립니다. 기존 저장소는 그대로 재사용합니다. `.venv`, `work`, 실제 고객 정보는 올리지 않습니다.
+1. GitHub의 앱 전용 저장소에 `app.py`, `planning.py`, `design.py`, `requirements.txt`, `README.md` 및 `.streamlit/config.toml`을 올립니다. 기존 저장소는 그대로 재사용합니다. `.venv`, `work`, 실제 고객 정보는 올리지 않습니다.
 2. Streamlit Community Cloud에 로그인하고 GitHub 계정을 연결합니다.
 3. 앱 생성 메뉴에서 해당 저장소와 파일이 있는 브랜치를 선택합니다. 메인 파일 경로는 `app.py`로 지정합니다.
 4. 고급 설정에서 Python 3.12를 선택하고 배포합니다.
