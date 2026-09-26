@@ -48,13 +48,10 @@ def won(value):
     return f"{value:,.0f}원"
 
 
-def main():
+def render_legacy_calculator():
     import streamlit as st
 
-    st.set_page_config(page_title="영플래너 | 재무목표 테스트", page_icon="📊", layout="wide")
-    st.title("재무목표 테스트")
-    st.caption("AFPK 영플래너 챌린지 · V0.1 프로토타입")
-    st.info("가상의 고객 정보만 입력하세요. 실제 개인정보를 사용하지 않는 테스트용 앱입니다.")
+    st.caption("V0.1 계산 화면 · 별도 시나리오 입력 · STEP 2~5의 입력과 독립적으로 계산합니다.")
     st.caption("금액 단위: 원 · 값을 변경하면 결과가 자동으로 다시 계산됩니다.")
 
     customer, goal = st.columns(2, gap="large")
@@ -111,12 +108,11 @@ def main():
 모든 계산은 명시적인 Python 수식으로 실행합니다. 생성형 AI나 외부 AI API를 사용하지 않습니다.
 """)
 
-    st.divider()
-    st.subheader("4. 인간 검토")
-    st.text_area("인간 검토 메모", key="review_notes", height=160,
-                 placeholder="예: 계산 가정의 한계, 부채 상환과 생활비 검토, 저축 지속 가능성, 최종 판단을 작성하세요. 실제 개인정보는 입력하지 마세요.")
-    st.caption("메모는 현재 접속 세션에서만 유지되며 파일이나 데이터베이스에 저장되지 않습니다. "
-               "새로고침·연결 종료 시 사라질 수 있습니다. 입력값 변경 후에는 기존 메모도 다시 검토하세요.")
+
+def main():
+    from planning import render_app
+
+    render_app(calculate_projection, won, render_legacy_calculator)
 
 
 if __name__ == "__main__":
