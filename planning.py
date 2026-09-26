@@ -167,7 +167,7 @@ def render_app(project, won, legacy):
     st.divider()
     st.header("STEP 3. 재무목표")
     st.caption("김참직 사례의 목표 템플릿입니다. 직접 입력 모드에서도 참고용으로 제공하며, 아래에서 선택한 목표의 금액·기간을 수정할 수 있습니다. "
-               "단기: 2028~2029년 · 중기: 2030~2033년 · 장기: 2037년 이후 · 상시: 유지 목표")
+               "단기: 2028–2029년 · 중기: 2030–2033년 · 장기: 2037년 이후 · 상시: 유지 목표")
     for k, (name, category, date, amount, _) in GOALS.items():
         detail = won(amount)
         if k == "debt":
