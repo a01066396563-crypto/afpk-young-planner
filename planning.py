@@ -89,6 +89,7 @@ def render_app(project, won, legacy):
 
     def seed():
         case = st.session_state.get("start_mode", "김참직 사례로 시작하기") == "김참직 사례로 시작하기"
+        st.session_state.pop("alt_base", None)
         # 다른 입력모드의 목표 배분 및 대안 설정이 섞이지 않게 초기화합니다.
         for k in list(st.session_state):
             if k.startswith(("p_", "f_", "g_", "a_")):
@@ -280,18 +281,43 @@ def render_app(project, won, legacy):
                     "STEP 3의 전세 조달계획 및 자가 비용 분해는 위 분석에 반영됩니다.")
             legacy()
 
+    rows, table = [], []
     with tabs[4]:
         st.header("STEP 5. 대안 비교")
         if target > 0:
-            st.caption("각 단독 대안은 해당 조건만 바꿉니다. 마지막 행은 네 조건을 함께 적용합니다. 값 변경 시 즉시 재계산됩니다.")
+            st.info("수정할 값은 아래 입력란에 넣으세요. 숫자를 입력한 뒤 Enter를 누르거나 다른 칸을 선택하면 결과가 바뀝니다. 아래 결과 표는 읽기 전용입니다.")
+            mode = st.radio("대안 입력 방식", ["최종 값 직접 입력", "증감으로 조정"], horizontal=True, key="alt_mode")
+            base_signature = (chosen, savings, years, rate, target)
+            if st.session_state.get("alt_base") != base_signature:
+                st.session_state["alt_base"] = base_signature
+                st.session_state.update(a_direct_savings=float(savings + 100_000), a_direct_years=min(50, years + 1),
+                                        a_direct_target=float(max(1, target * .9)), a_direct_rate=min(100.0, rate + 1))
             x, y = st.columns(2)
-            extra = x.number_input("추가 월 저축액 (원)", 0, 10_000_000_000, 100_000, step=10_000, key="a_extra")
-            more_years = y.number_input("목표기간 추가 (년)", 0, 49, 1, key="a_years")
-            pct = x.number_input("조정 목표금액 (기준 목표의 %)", 1.0, 200.0, 90.0, step=5.0, key="a_pct")
-            delta_rate = y.number_input("기대수익률 변경폭 (%p)", -199.0, 199.0, 1.0, step=0.1, key="a_rate")
+            if mode == "최종 값 직접 입력":
+                direct_savings = x.number_input("대안 월 저축액 (원)", 0.0, 20_000_000_000.0, step=10000.0, format="%.0f", key="a_direct_savings")
+                direct_years = y.number_input("대안 목표기간 (년)", 1, 50, key="a_direct_years")
+                direct_target = x.number_input("대안 목표금액 (원)", 1.0, 20_000_000_000_000.0, step=100000.0, format="%.0f", key="a_direct_target")
+                direct_rate = y.number_input("대안 연수익률 (%)", -99.0, 100.0, step=.1, key="a_direct_rate")
+                extra, more_years = direct_savings - savings, direct_years - years
+                pct, delta_rate = direct_target / target * 100, direct_rate - rate
+                st.caption("목표 또는 기준 분석값을 바꾸면 직접 입력 대안도 새 기준으로 초기화됩니다. 월 저축 감소·기간 단축도 비교할 수 있습니다.")
+            else:
+                extra = x.number_input("추가 월 저축액 (원)", 0, 10_000_000_000, 100_000, step=10_000, key="a_extra")
+                more_years = y.number_input("목표기간 추가 (년)", 0, 49, 1, key="a_years")
+                pct = x.number_input("조정 목표금액 (기준 목표의 %)", 1.0, 200.0, 90.0, step=5.0, key="a_pct")
+                delta_rate = y.number_input("기대수익률 변경폭 (%p)", -199.0, 199.0, 1.0, step=0.1, key="a_rate")
+            st.button("대안 다시 계산", key="recalculate_alternatives", type="primary")
             st.warning("기대수익률 상승에는 위험 증가와 손실 가능성이 따릅니다. 높은 수익률이 더 좋은 대안이라는 뜻은 아닙니다. 투자성향과 목표시점을 함께 검토하세요.")
             st.caption("기간은 최대 50년, 변경 후 수익률은 -99~100%로 제한됩니다. 표에 실제 적용값을 표시합니다.")
             rows = compare_alternatives(project, available, savings, years, rate, target, extra, more_years, pct, delta_rate)
+            rows[1]["name"] = "월 저축액 변경"
+            rows[2]["name"] = "목표기간 변경"
+            combined = rows[-1]["result"]
+            cards = st.columns(3)
+            cards[0].metric("대안 조합 예상자산", won(combined.total), delta=won(combined.total - rows[0]["result"].total))
+            cards[1].metric("대안 조합 목표달성률", f"{combined.total / rows[-1]['target'] * 100:.1f}%")
+            cards[2].metric("대안 조합 부족/초과", ("초과 " if combined.gap >= 0 else "부족 ") + won(abs(combined.gap)))
+            st.caption("각 행은 해당 조건만 바꾼 결과입니다. ‘대안 조합’은 네 조건을 모두 반영합니다.")
             table = []
             for row in rows:
                 r = row["result"]
@@ -314,3 +340,32 @@ def render_app(project, won, legacy):
         st.text_area("인간 검토 메모", key="review_notes", height=160,
                      placeholder="가정의 한계, 자금 중복배분, 부채 상환, 목표 우선순위, 투자위험 및 최종 판단을 기록하세요.")
         st.caption("메모는 현재 접속 세션에서만 유지되며 영구 저장되지 않습니다. 새로고침·연결 종료 시 사라질 수 있습니다. 입력이나 사례 변경 후 기존 메모를 다시 검토하세요.")
+
+        st.subheader("나의 재무설계 리포트")
+        st.write("현재 고객정보, 재무상태, 선택 목표, 대안 비교와 검토 메모를 한 문서로 받아보세요.")
+        st.caption("입력과 메모를 수정한 뒤 Enter 또는 다른 칸 클릭으로 반영해 주세요. HTML 파일은 인터넷 없이 열 수 있고, 브라우저 인쇄에서 PDF로 저장할 수 있습니다.")
+        from report import build_report
+        profile_labels = {"name":"가명", "age":"나이", "job":"직업", "region":"근무지역", "tenure":"재직기간(년)", "marital":"혼인상태", "marriage_age":"결혼 예정 나이", "children":"자녀 계획", "risk":"투자성향", "investment":"투자 방식"}
+        sections = [
+            ("01 고객 프로필", ["항목", "입력값"], [[label, st.session_state.get("p_" + k, "")] for k, label in profile_labels.items()]),
+            ("02 재무상태", ["항목", "금액"], [[ASSETS[k][0], won(v)] for k, v in assets.items()] + [["총자산",won(balance["total_assets"])],["총부채",won(debt)],["순자산",won(balance["net_assets"])]]),
+            ("월 현금흐름", ["항목", "금액"], [[FLOW[k][0],won(v)] for k,v in flow_inputs.items()] + [["월 잉여현금흐름",won(flow["surplus"])]]),
+            ("재무비율", ["지표", "값"], [[label, "계산 불가" if v is None else f"{v*100:.1f}%"] for label,v in ratios] + [["비상자금 개월 수", "계산 불가" if months is None else f"{months:.2f}개월"]]),
+            ("03 목표 타임라인 (사례 템플릿)", ["목표", "분류", "시점", "기본 목표"], [[v[0],v[1],v[2],won(v[3]) + ("/월" if k=="retirement" else "")] for k,v in GOALS.items()]),
+            ("04 선택 목표 분석", ["조건", "현재 값"], [["목표",name],["분석 기준연도",base_year],["목표금액",won(target)],["기간",f"{years}년"],["연수익률",f"{rate:.2f}%"],["활용 자산",won(available)],["선택 자산",", ".join(ASSETS[k][0] for k in selected)],["자산 배분율",f"{asset_pct}%"],["월 저축 배분액",won(savings)],["월 저축 배분율",f"{savings_pct}%"]]),
+        ]
+        if chosen == "lease":
+            sections.append(("전세 조달 가정", ["항목","금액"], [["보증금",won(lease_total)],["본인",won(own)],["배우자",won(spouse)],["대출",won(loan)],["조달 차액",won(funding_gap)]]))
+        elif chosen == "home":
+            sections.append(("자가 마련 가정", ["항목","금액"], [["현재가치 매입가",won(price)],["부대비용",won(cost)]]))
+        elif chosen == "retirement":
+            sections.append(("은퇴 가정", ["항목","값"], [["현재가치 월 생활비",won(monthly)],["생활비 준비기간",f"{duration}년"],["환산 방식","월 생활비 × 12 × 준비기간; 연금·은퇴 후 운용 미반영"]]))
+        if target > 0:
+            sections.append(("기준안 계산 결과", ["지표","값"], [["예상자산",won(result.total)],["기존 자산 미래가치",won(result.assets_fv)],["적립 미래가치",won(result.savings_fv)],["차액 (예상−목표)",won(result.gap)],["달성률",f"{result.total/target*100:.1f}%"]]))
+            sections.append(("05 대안 비교", list(table[0]), [list(r.values()) for r in table]))
+            sections.append(("대안 현금흐름 검토", ["항목","값"], [["월 저축 변경액",won(extra)],["변경 후 잉여현금흐름",won(remaining)]]))
+        else:
+            sections.append(("계산 결과",["상태"],[["자동차 할부잔액 0원: 상환 목표 완료. 대안 분석 없음."]]))
+        report_bytes = build_report(sections, st.session_state.get("review_notes", ""))
+        st.download_button("재무설계 리포트 다운로드 (.html)", report_bytes, file_name="young-planner-report.html", mime="text/html", key="download_report", type="primary")
+        st.caption("서버 파일·DB에 영구 저장하지 않습니다. 내려받은 파일은 내 기기에 남으며, 입력 변경 후 다시 다운로드해야 합니다.")
